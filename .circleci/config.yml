@@ -1,0 +1,70 @@
+executors:
+    docker-publisher:
+        machine: true
+jobs:
+    build:
+        executor: docker-publisher
+        steps:
+            - checkout
+            - run:
+                command: ./build-dist-wheel.sh
+                name: Build Python Wheel
+            - store_test_results:
+                path: test-results/pytest
+            - store_artifacts:
+                path: test-results/coverage
+            - persist_to_workspace:
+                paths:
+                    - ./Dockerfile
+                    - ./README.md
+                    - ./build-runnable-image.sh
+                    - ./ci
+                    - ./dist
+                    - ./docker-env
+                    - ./pyproject.toml
+                root: .
+
+    deploy:
+        docker:
+            - image: circleci/python:3.8
+        steps:
+            - attach_workspace:
+                at: .
+            - run:
+                command: pip install poetry
+            - setup_remote_docker
+            - run:
+                command: ./build-runnable-image.sh
+                name: Build Runnable Docker Image
+            - run:
+                command: ./ci/publish-pypi.sh
+                name: Publish Package to PyPi
+            - run:
+                command: ./ci/tag-and-push.sh
+                name: Publish Docker Image to Docker Hub
+parameters:
+    image_archive:
+        default: image.tar
+        type: string
+version: 2.1
+workflows:
+    main:
+        jobs:
+            - build:
+                filters:
+                    branches:
+                        only:
+                            - develop
+                            - circleci
+                            - release
+                            - /.*-ci/
+            - deploy:
+                filters:
+                    branches:
+                        only:
+                            - circleci
+                            - release
+                requires:
+                    - build
+    version: 2.1
+

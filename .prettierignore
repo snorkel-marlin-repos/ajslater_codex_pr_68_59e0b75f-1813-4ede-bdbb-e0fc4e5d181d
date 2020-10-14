@@ -1,0 +1,13 @@
+.circleci
+.mypy_cache
+.pytest_cache
+/test-results
+__pycache__
+codex/static_build
+codex/static_root
+/config
+frontend/dist
+frontend/public/css/normalize.css
+static_prod
+templates
+webpack-stats.json
